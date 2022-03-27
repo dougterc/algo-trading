@@ -46,3 +46,6 @@ input.sheet <- read_xlsx("./algo-trading/sample_settings_webpage.xlsx") %>%
 stocks_in <- str_trim(unlist(strsplit(input.sheet$Input[4],",")))
 
 getQuote(c(stocks_in))$Last
+
+
+tables[1]
