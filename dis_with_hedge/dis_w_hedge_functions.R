@@ -1,4 +1,4 @@
-dis_w_hedge.loadPackages <- function() {
+dis.general.loadPackages <- function() {
   require(scales)
   require(AER)
   require(tidyverse)
@@ -33,7 +33,91 @@ dis_w_hedge.loadPackages <- function() {
   '%!in%' <- function(x,y)!('%in%'(x,y))
 }
 
-dis_w_hedge.finVizScreener <- function(filters,header,page) {
+dis.finviz.insider.scraper <- function(link) {
+  #libraries. Install if necessary
+  require(rvest)
+  require(dplyr)
+  
+  #link
+  url <- link
+  page <- read_html(url)
+  
+  #code that pulls the numbers. put in brackets to make cleaner
+  {
+    #First line creates the variable, second line finds the ticker,
+    #third line turns it into the text we actually need.
+    columns <- page %>% 
+      html_nodes(".table-top") %>%
+      html_text()
+    #View(columns)
+    
+    ticker <- page %>% 
+      html_nodes(".cursor-pointer td:nth-child(1)") %>%
+      html_text()
+    #View(ticker)
+    
+    owner <- page %>% 
+      html_nodes(".cursor-pointer td:nth-child(2)") %>%
+      html_text()
+    #View(owner)
+    
+    relationship <- page %>% 
+      html_nodes(".cursor-pointer td:nth-child(3)") %>%
+      html_text()
+    #View(relationship)
+    
+    transaction_date <- page %>% 
+      html_nodes(".cursor-pointer td:nth-child(4)") %>%
+      html_text()
+    #View(transaction_date)
+    
+    transaction <- page %>% 
+      html_nodes(".cursor-pointer td:nth-child(5)") %>%
+      html_text()
+    #View(transaction)
+    
+    share_price <- page %>% 
+      html_nodes(".cursor-pointer td:nth-child(6)") %>%
+      html_text()
+    #View(share_price)
+    
+    num_shares <- page %>% 
+      html_nodes(".cursor-pointer td:nth-child(7)") %>%
+      html_text()
+    #View(num_shares)
+    
+    dollar_value <- page %>% 
+      html_nodes(".cursor-pointer td:nth-child(8)") %>%
+      html_text()
+    #View(dollar_value)
+    
+    total_shares <- page %>% 
+      html_nodes(".cursor-pointer td:nth-child(9)") %>%
+      html_text()
+    #View(total_shares)
+    
+    filing_date <- page %>% 
+      html_nodes(".cursor-pointer td:nth-child(10)") %>%
+      html_text()
+    #View(filing_date)
+    
+    FinViz <- data.frame(
+      ticker = ticker,
+      owner = owner,
+      relationship = relationship,
+      transaction_date = transaction_date,
+      transaction = transaction,
+      share_price = share_price,
+      num_shares = num_shares,
+      dollar_value = dollar_value,
+      total_shares = total_shares,
+      filing_date = filing_date
+    )
+  }
+  return(FinViz)
+}
+
+dis.finviz.screener.scraper <- function(filters,header,page,node) {
   #stop as a bool variable to stop loop
   stop <- FALSE
   #set iterator i to 1 to be used in read-in while loop
@@ -69,7 +153,7 @@ dis_w_hedge.finVizScreener <- function(filters,header,page) {
     #assign tables as html nodes
     tables <- html_nodes(url,"table")
     #assign screen as dataframe with proper node (11) selected from tables
-    screen <- tables %>% html_nodes("table") %>% .[11] %>% 
+    screen <- tables %>% html_nodes("table") %>% .[node] %>% 
       html_table(fill=TRUE) %>% data.frame()
     #set columnnames of screen as the first row from screen, as this is how data 
     # was brought in
@@ -98,6 +182,7 @@ dis_w_hedge.finVizScreener <- function(filters,header,page) {
     }
     #upgrade iterator i by 1
     i <- i+1
+    Sys.sleep(0.25)
   }
   #if page wanted is Overview
   if(hCode == 111) {
@@ -391,86 +476,173 @@ dis_w_hedge.finVizScreener <- function(filters,header,page) {
   return(cScreener)
 }
 
-dis_w_hedge.adrianScraper <- function(link) {
-  #libraries. Install if necessary
-  require(rvest)
-  require(dplyr)
-  
-  #link
-  url <- link
-  page <- read_html(url)
-  
-  #code that pulls the numbers. put in brackets to make cleaner
-  {
-    #First line creates the variable, second line finds the ticker,
-    #third line turns it into the text we actually need.
-    columns <- page %>% 
-      html_nodes(".table-top") %>%
-      html_text()
-    #View(columns)
-    
-    ticker <- page %>% 
-      html_nodes(".cursor-pointer td:nth-child(1)") %>%
-      html_text()
-    #View(ticker)
-    
-    owner <- page %>% 
-      html_nodes(".cursor-pointer td:nth-child(2)") %>%
-      html_text()
-    #View(owner)
-    
-    relationship <- page %>% 
-      html_nodes(".cursor-pointer td:nth-child(3)") %>%
-      html_text()
-    #View(relationship)
-    
-    transaction_date <- page %>% 
-      html_nodes(".cursor-pointer td:nth-child(4)") %>%
-      html_text()
-    #View(transaction_date)
-    
-    transaction <- page %>% 
-      html_nodes(".cursor-pointer td:nth-child(5)") %>%
-      html_text()
-    #View(transaction)
-    
-    share_price <- page %>% 
-      html_nodes(".cursor-pointer td:nth-child(6)") %>%
-      html_text()
-    #View(share_price)
-    
-    num_shares <- page %>% 
-      html_nodes(".cursor-pointer td:nth-child(7)") %>%
-      html_text()
-    #View(num_shares)
-    
-    dollar_value <- page %>% 
-      html_nodes(".cursor-pointer td:nth-child(8)") %>%
-      html_text()
-    #View(dollar_value)
-    
-    total_shares <- page %>% 
-      html_nodes(".cursor-pointer td:nth-child(9)") %>%
-      html_text()
-    #View(total_shares)
-    
-    filing_date <- page %>% 
-      html_nodes(".cursor-pointer td:nth-child(10)") %>%
-      html_text()
-    #View(filing_date)
-    
-    FinViz <- data.frame(
-      ticker = ticker,
-      owner = owner,
-      relationship = relationship,
-      transaction_date = transaction_date,
-      transaction = transaction,
-      share_price = share_price,
-      num_shares = num_shares,
-      dollar_value = dollar_value,
-      total_shares = total_shares,
-      filing_date = filing_date
+dis.historical.data <- function(tickers,startDate,endDate,tbd) {
+  #require BatchGetSymbols for historical data import
+  require(BatchGetSymbols)
+  #call BatchGetSymbols with arguments, returns list of $df.control and $df.tickers
+  rawData <- BatchGetSymbols(tickers,first.date = startDate, last.date = endDate, 
+                             thresh.bad.data = tbd)
+  #reassign rawData$df.tickers such that column names are clean, uniformed, & 
+  # reordered, and missing return observations are filtered out
+  rawData$df.tickers <- rawData$df.tickers %>%
+    `colnames<-`(c("Open","High","Low","Close","Volume","Adjusted","RefDate",
+                   "Ticker","RetAdj","RetClose")) %>%
+    select(RefDate,Ticker,Open,High,Low,Close,RetClose,Adjusted,RetAdj,Volume) %>%
+    filter(is.na(RetClose) == FALSE)
+  #reassign rawData$df.control such that column names are clean and uniform
+  rawData$df.control <- rawData$df.control %>%
+    `colnames<-`(c("Ticker","SRC","Status","Obs","Perc","Decision"))
+  #call TercVentures.gen.removeDuplicateDates to remove any duplicate date 
+  # observations, returns list of $Control and $Historical
+  rawData <- dis.historical.scrubDates(rawData)
+  #return rawData as list of $Control and $Historical
+  return(rawData)
+}
+
+dis.historical.scrubDates <- function(rawData) {
+  #assign tLength as numerical length such that it is the amount of tickers in 
+  # the dataset
+  tLength <- length(c(rawData$df.control$Ticker))
+  #for loop between 1 and the amount of tickers in the dataset
+  for(i in seq(rawData$df.control$Ticker)) {
+    #print status and wipe console
+    cat(paste("Searching for duplicates in ",rawData$df.control$Ticker[i],
+              " : ",round(i/tLength*100,digits=2),"%",sep=""))
+    Sys.sleep(0.005)
+    cat("\014")
+    #if duplicated dates are found within the current ticker element
+    if(TRUE %in% c(
+      duplicated(
+        (
+          rawData$df.tickers%>%filter(Ticker==rawData$df.control$Ticker[i])
+        )$RefDate
+      )
     )
+    ) {
+      #action to remove
+      #assign findDate as date where the duplicated element is found in 
+      # rawData$df.tickers
+      findDate <- (rawData$df.tickers%>%filter(Ticker==rawData$df.control$Ticker[i]) 
+                   %>% filter(duplicated(RefDate)==TRUE))$RefDate
+      #assign indexes as a vector of the intersection between locations in 
+      # rawData$df.tickers where the duplicated date exists and locations of the 
+      #current ticker element, thus the currect duplicated date locations
+      indexes <- c(intersect(grep(findDate,rawData$df.tickers$RefDate),
+                             grep(rawData$df.control$Ticker[i],
+                                  rawData$df.tickers$Ticker)))
+      #assign newLine as single line of data which is the condensed multiple lines 
+      # of duplicated dates
+      #subset the currect rows of duplicated dates, group by Ticker, properly 
+      #condense, reorder columns
+      newLine <- rawData$df.tickers[indexes,] %>% 
+        group_by(Ticker) %>% 
+        summarize(RefDate = max(RefDate),
+                  Open = min(Open),
+                  High = max(High),
+                  Low = min(Low),
+                  Close = max(Close),
+                  RetClose = max(RetClose),
+                  Adjusted = max(Adjusted),
+                  RetAdj = max(RetAdj),
+                  Volume = max(Volume)
+        ) %>%
+        select(RefDate,Ticker,Open,High,Low,Close,RetClose,Adjusted,RetAdj,Volume)
+      #reassign newLine to rawData$df.tickers at maximum row of duplicated rows
+      rawData$df.tickers[indexes[length(indexes)],] <- newLine
+      #reassign all indexes that are not the maximum row of duplicated rows 
+      # (which was just used) to indexes, for removal in next step
+      indexes <- c(indexes[!indexes %in% indexes[length(indexes)]])
+      #remove rows from rawData$df.tickers defined by indexes and reassign to 
+      # rawData$df.tickers
+      rawData$df.tickers <- rawData$df.tickers[-indexes,]
+      #adjust number of observations in rawData$df.control by subtracting indexes, 
+      # thus the amount of deleted rows
+      rawData$df.control$Obs[i] <- rawData$df.control$Obs[i]-length(indexes)
+      #adjust the Perc column in rawData$df.control to be the proper percentage of 
+      # each row's total obs, such that each rows number of observations is divided 
+      # by the maximum instance of rows in the dataset
+      rawData$df.control <- rawData$df.control %>%
+        transform(Perc = Obs / max(Obs))
+      #set rownames of rawData$df.tickers to NULL
+      rownames(rawData$df.tickers) <- c()
+    } else {
+    }
   }
-  return(FinViz)
+  #set names in rawData list
+  names(rawData) <- c("Control","Historical")
+  #return the list of $Control and $Historical as rawData
+  return(rawData)
+}
+
+dis.historical.turnHorizontal <- function(df) {
+  #df is a three column dataframe. Column 1 is grouping (column definition), 
+  # Column 2 is the y axis (row defintion), Column 3 is the populating data
+  #sort df by instances to find max as baseline, assign grouped as vector of 
+  # characters such  that it is the grouping variable, typically tickers
+  grouped <- c((df %>% group_by_at(1) 
+                %>% summarise(n = n()) 
+                %>% arrange(desc(n),Ticker))$Ticker)
+  #assign gLength as numerical such that it is the length of grouped
+  gLength <- length(grouped)
+  #for loop between 1 and the length grouped, thus gLength
+  for(i in seq(gLength)) {
+    #print status   
+    cat(paste("Turning ",grouped[i]," to Horizontal: ",
+              round(i/gLength*100,digits=2),"%",sep=""))
+    Sys.sleep(0.005)
+    cat("\014")
+    #if iteration is on first loop
+    if(i == 1) {
+      #assign to Frame1 such that column 1 of df is equal to the current grouping 
+      # element and select columns 2 and 3, thus the x and y axis information, then 
+      # rename columns
+      Frame1 <- ((df %>%
+                    filter(df[,1] == grouped[i]))[,c(2,3)]) %>%
+        `colnames<-`(c("RefDate",gsub(" ",'',grouped[i])))
+    } else {
+      #iterator is past fist loop and is ready for new frames to be joined onto 
+      # Frame1
+      #assign to Frame2 such that column 1 of df is equal to the current grouping 
+      # element
+      # and subset columns 2 and 3, thus the x and y axis information, then rename 
+      # columns
+      Frame2 <- ((df %>%
+                    filter(df[,1] == grouped[i]))[,c(2,3)]) %>%
+        `colnames<-`(c("RefDate",grouped[i]))
+      #assign to Frame1 such that Frame2 is left joined onto Frame1 by 'RefDate'
+      Frame1 <- left_join(Frame1,Frame2,by=c("RefDate"="RefDate"))
+    }
+  }
+  return(Frame1)
+}
+
+dis.historical.cleanMissing <- function(horzData) {
+  #for loop between 1 and number of columns in horzData frame
+  for(i in seq(ncol(horzData))) {
+    #if on first iteration, thus i==1
+    if(i == 1) {
+      #initialize null vector of column indexes for removal
+      indexes <- c()
+      #if there are any null values in the current column element, append to
+      # indexes vector for later removal
+      if(any(is.na(horzData[,i]))) {
+        indexes <- append(indexes,i)
+      }
+    }
+    #if iterator is past first loop, only search for NA's. No initialization.
+    if(i > 1) {
+      #if there are any null values in the current column element, append to
+      # indexes vector for later removal
+      if(any(is.na(horzData[,i]))) {
+        indexes <- append(indexes,i)
+      }
+    }
+  }
+  #remove the columns from horzData whose column indexes are in the 
+  # vector 'indexes'
+  if(length(indexes)>0) {
+    horzData <- horzData[,-indexes]
+  }
+  #return the scrubbed horizontal dataframe
+  return(horzData)
 }
