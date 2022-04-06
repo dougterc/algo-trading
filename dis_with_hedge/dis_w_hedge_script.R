@@ -1,56 +1,71 @@
 source("./dis_w_hedge_functions.R")
-
 #dis.finviz.insider.scraper("https://finviz.com/insidertrading.ashx")
 dis.general.loadPackages()
 screener <- dis.finviz.screener.scraper("","Overview",0,17)
-sectors <- c(unique(screener$Sector))
-desired_sector <- "Energy"
-ds_index <- grep(desired_sector,sectors)
-ticker_by_sector <- screener %>%
-  filter(Sector == sectors[ds_index]) %>%
-  select(Ticker,Company,Sector,Industry) %>%
-  arrange(Industry)
-industries <- c(unique(ticker_by_sector$Industry))
-desired_industry <- "Oil & Gas Midstream"
-di_index <- grep(desired_industry,industries)
-ticker_by_industry <- screener %>%
-  filter(Industry == industries[di_index]) %>%
-  select(Ticker,Company,Sector,Industry) %>%
-  arrange(Ticker)
-#in DIS
-hd <- dis.historical.data(c(ticker_by_industry$Ticker),Sys.Date()-365,Sys.Date(),0)
+
+#upload to db screener
+mydb <- dis.database.connect("local","dis_db")
+
+# source("./dis_w_hedge_functions.R")
+# dis.database.uploadScreener(mydb,screener)
+
+#screener <- dbGetQuery(mydb,"SELECT * FROM DIS_Screener;")
+#have update formula HERE
+
+#simulate webpage inputs
+user_id_in <- 1
+inputs_id_in <- 1
+
+#get from database
+sectors <- c(unique(dbGetQuery(mydb,"SELECT Sector FROM DIS_Screener;")))
+desired_sector <- dbGetQuery(mydb,
+                             paste0(
+                               "SELECT desired_sector_a FROM DIS_Inputs WHERE user_id=",
+                               user_id_in," AND inputs_id=",inputs_id_in,";"))[1,1]
+industries <- unique(c(dbGetQuery(mydb,
+                        paste0(
+                          "SELECT industry FROM DIS_Screener WHERE sector='",
+                          desired_sector,"';"))$industry))
+desired_industry <- dbGetQuery(mydb,
+                             paste0(
+                               "SELECT desired_industry_a FROM DIS_Inputs WHERE user_id=",
+                               user_id_in," AND inputs_id=",inputs_id_in,";"))[1,1]
+
+if(desired_industry == "All") {
+  tickers <- unique(c(dbGetQuery(mydb,
+                                    paste0(
+                                      "SELECT ticker FROM DIS_Screener WHERE sector='",
+                                      desired_sector,"';"))$ticker))
+} else {
+  tickers <- unique(c(dbGetQuery(mydb,
+                                 paste0(
+                                   "SELECT ticker FROM DIS_Screener WHERE sector='",
+                                   desired_sector,"' AND industry='",desired_industry,"';"))$ticker))
+}
+
+#Get historical data for DIS
+hd <- dis.historical.data(tickers,Sys.Date()-365,Sys.Date(),0)
 prices <- hd$Historical
+lookback <- 30
 temp <- prices %>%
   select(Ticker,RefDate,RetClose)
 hPrices <- dis.historical.turnHorizontal(temp) %>%
-  filter(RefDate >= Sys.Date()-30)
+  filter(RefDate >= Sys.Date()-lookback)
 hPrices.clean <- dis.historical.cleanMissing(hPrices)
 
-#ALL
-hd.all <- dis.historical.data(c(screener$Ticker),Sys.Date()-365,Sys.Date(),0)
-prices.all <- hd.all$Historical
-temp.all <- prices.all %>%
-  select(Ticker,RefDate,RetClose)
-hPrices.all <- dis.historical.turnHorizontal(temp.all) %>%
-  filter(RefDate >= Sys.Date()-30)
-hPrices.clean.all <- dis.historical.cleanMissing(hPrices.all)
+summary <- temp %>%
+  filter(RefDate >= Sys.Date()-lookback) %>%
+  group_by(Ticker) %>%
+  summarize(ReturnS = sum(RetClose),
+            ReturnM = mean(RetClose),
+            StdDevR = sd(RetClose)) %>%
+  mutate(mean_ratio = ReturnM / StdDevR) %>%
+  arrange(desc(mean_ratio))
+numstks <- dbGetQuery(mydb,
+                      paste0(
+                        "SELECT num_of_stocks FROM DIS_Inputs WHERE user_id=",
+                        user_id_in," AND inputs_id=",inputs_id_in,";"))[1,1]
+                                          
+picks <- summary[1:numstks,]
 
 
-#industry lists
-temp <- screener %>% 
-  select(Sector,Industry) %>%
-  arrange(Sector,Industry)
-sectorList <- temp[!duplicated(temp),] %>%
-  `rownames<-`(c())
-sectors <- c(unique(sectorList$Sector))
-for(i in seq(sectors)) {
-  ind_list <- as.data.frame(matrix('NA',1,1)) %>%
-    `colnames<-`(c(paste0("Sector: ",sectors[i])))
-  ind_list <- ind_list[-1,]
-  ind <- sectorList %>%
-    filter(Sector == sectors[i]) %>%
-    select(Industry) %>%
-    `colnames<-`(c(paste0("Sector: ",sectors[i])))
-  ind_list <- rbind(ind_list,ind)
-  write_csv(ind_list,paste0("./sector_industry_lists/",sectors[i],".csv"))
-}

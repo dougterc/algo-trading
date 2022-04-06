@@ -646,3 +646,41 @@ dis.historical.cleanMissing <- function(horzData) {
   #return the scrubbed horizontal dataframe
   return(horzData)
 }
+
+dis.database.connect <- function(type,dbName) {
+  conn <- NA
+  if(type == "local") {
+    #establish SQL connection
+    mydb = dbConnect(MySQL(), 
+                     user='root', 
+                     password='Rangers2014!', 
+                     dbname=dbName, 
+                     host='localhost')
+    conn <- mydb
+  } else {
+    
+  }
+  return (conn)
+}
+
+dis.database.uploadScreener <- function(dbconn,screener) {
+  s <- screener %>%
+    transform(Company = gsub("'","*",Company)) %>%
+    transform(Sector = gsub("'","*",Sector)) %>%
+    transform(Industry = gsub("'","*",Industry)) %>%
+    transform(Country = gsub("'","*",Country)) %>%
+    select(Ticker,Company,Sector,Industry,Country,DateUpdated) %>%
+    mutate(Insert = paste0("(",
+                           paste0("'",Ticker,"'"),",",
+                           paste0("'",Company,"'"),",",
+                           paste0("'",Sector,"'"),",",
+                           paste0("'",Industry,"'"),",",
+                           paste0("'",Country,"'"),",",
+                           paste0("'",DateUpdated,"'"),")"))
+  dbGetQuery(dbconn,paste0("INSERT INTO DIS_Screener (",
+                       paste(dbListFields(dbconn,"DIS_Screener"),collapse = ","),") VALUES ",
+                       paste(s$Insert,collapse = ","),";"))
+  return('Complete.')
+}
+
+dis.database.updateScreener <- function() {}
