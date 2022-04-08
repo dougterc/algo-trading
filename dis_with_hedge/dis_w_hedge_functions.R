@@ -647,6 +647,40 @@ dis.historical.cleanMissing <- function(horzData) {
   return(horzData)
 }
 
+dis.historical.restack <- function(cleanHorz,specColumnName) {
+  #for loop between 1 and number of columns in cleanHorz
+  gLength <- ncol(cleanHorz)-1
+  for(i in seq(ncol(cleanHorz))) {
+    #if on first iteration, thus RefDate column
+    if(i == 1) {
+      #initialize blank table to be added to
+      stacked <- tribble(
+        ~RefDate,
+        ~Value,
+        ~Ticker
+      )
+    } else {
+      #if not on first iteration
+      #get current stock ticker for Ticker column
+      curStk <- colnames(cleanHorz)[i]
+      #get current column element and RefDate column, create
+      #Ticker column, then add onto stacked dataframe
+      stacked <- stacked %>%
+        rbind(
+          cleanHorz[,c(1,i)] %>%
+            mutate(Ticker = curStk) %>%
+            `colnames<-`(c("RefDate",specColumnName,"Ticker"))
+        )
+    }
+  }
+  #copy value column onto end of dataframe, then remove it from
+  # middle for ideal ordering of columns
+  stacked <- (stacked %>%
+                cbind(stacked[2]))[,-2]
+  #return stacked frame
+  return(stacked)
+}
+
 dis.database.connect <- function(type,dbName) {
   conn <- NA
   if(type == "local") {
@@ -684,3 +718,4 @@ dis.database.uploadScreener <- function(dbconn,screener) {
 }
 
 dis.database.updateScreener <- function() {}
+
